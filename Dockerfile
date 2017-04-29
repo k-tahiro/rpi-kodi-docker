@@ -13,35 +13,35 @@ ENV HOME=/home/pi
 WORKDIR ${HOME}
 
 # kodi installation
-RUN sudo apt-get update && \
-    sudo apt-get install -y git-core && \
-    git clone git://github.com/xbmc/xbmc.git kodi && \
-    mkdir kodi-build
-WORKDIR "${HOME}/kodi-build"
-# FIXME
-# E: Package 'libcurl-dev' has no installation candidate
-# E: Unable to locate package libfmt3-dev
-# E: Package 'libgl-dev' has no installation candidate
-# E: Unable to locate package rapidjson-dev
-RUN sudo apt-get install -y autoconf automake autopoint autotools-dev cmake curl \
-                            default-jre gawk gperf libao-dev libasound2-dev \
-                            libass-dev libavahi-client-dev libavahi-common-dev libbluetooth-dev \
-                            libbluray-dev libbz2-dev libcap-dev \
-                            libcdio-dev libcec-dev libcurl4-openssl-dev libcurl4-gnutls-dev \
-                            libcwiid-dev libdbus-1-dev libegl1-mesa-dev libfontconfig-dev libfreetype6-dev \
-                            libfribidi-dev libgif-dev libgl1-mesa-dev libglu1-mesa-dev libglu-dev \
-                            libiso9660-dev libjpeg-dev libltdl-dev liblzo2-dev libmicrohttpd-dev \
-                            libmpcdec-dev libmysqlclient-dev libnfs-dev \
-                            libpcre3-dev libplist-dev libpng12-dev libpng-dev libpulse-dev \
-                            libshairplay-dev libsmbclient-dev libsqlite3-dev libssh-dev libssl-dev libswscale-dev \
-                            libtag1-dev libtinyxml-dev libtool libudev-dev \
-                            libusb-dev libva-dev libvdpau-dev libxml2-dev \
-                            libxmu-dev libxrandr-dev libxslt1-dev libxt-dev lsb-release \
-                            nasm python-dev python-imaging python-support swig unzip uuid-dev yasm \
-                            zip zlib1g-dev && \
-    cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local && \
-    cmake --build . -- VERBOSE=1 && \
+RUN sudo apt-get install git autoconf curl g++ zlib1g-dev libcurl4-openssl-dev gawk gperf libtool autopoint swig default-jre && \
+    git clone https://github.com/raspberrypi/tools && \
+    sudo cp -r tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64 /opt && \
+    git clone https://github.com/raspberrypi/firmware && \
+    sudo mkdir -p /opt/bcm-rootfs/opt && \
+    sudo cp -r firmware/opt/vc /opt/bcm-rootfs/opt && \
+    sudo mkdir -p /opt/kodi-bcm && \
+    sudo chmod 777 /opt/kodi-bcm && \
+    git clone https://github.com/xbmc/xbmc
+WORKDIR "${HOME}/xbmc/tools/depends"
+RUN ./bootstrap && \
+    PATH="$PATH:/opt/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin" \
+     ./configure --host=arm-linux-gnueabihf \
+     --prefix=/opt/kodi-bcm/kodi-dbg \
+     --with-toolchain=/usr/local/bcm-gcc/arm-bcm2708hardfp-linux-gnueabi/sysroot \
+     --with-firmware=/opt/bcm-rootfs \
+     --with-platform=raspberry-pi2 \
+     --build=i686-linux && \
+    make
+WORKDIR "${HOME}/xbmc"
+RUN CONFIG_EXTRA="--with-platform=raspberry-pi \
+       --enable-libcec --enable-player=omxplayer \
+       --disable-x11 --disable-xrandr --disable-openmax \
+       --disable-optical-drive --disable-dvdcss --disable-joystick \
+       --disable-crystalhd --disable-vtbdecoder --disable-vaapi \
+       --disable-vdpau --enable-alsa" \
+       make -C tools/depends/target/xbmc && \
+    make && \
     sudo make install
 
 # post process
-ENTRYPOINT kodi.bin
+CMD /bin/bash
