@@ -13,7 +13,8 @@ ENV HOME=/home/pi
 WORKDIR ${HOME}
 
 # kodi installation
-RUN sudo apt-get install git autoconf curl g++ zlib1g-dev libcurl4-openssl-dev gawk gperf libtool autopoint swig default-jre && \
+RUN sudo apt-get update && \
+    sudo apt-get -y install git autoconf curl g++ zlib1g-dev libcurl4-openssl-dev gawk gperf libtool autopoint swig default-jre && \
     git clone https://github.com/raspberrypi/tools && \
     sudo cp -r tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64 /opt && \
     git clone https://github.com/raspberrypi/firmware && \
